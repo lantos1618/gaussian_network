@@ -67,77 +67,38 @@ def pairwise_projections(data: np.ndarray, dims: List[int] = [0, 1, 2]):
     plt.tight_layout()
     plt.show()
 
-
 def estimate_gaussian_parameters(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Estimate the mean and covariance of given data to represent it as a Gaussian.
-
-    Parameters:
-        data (np.ndarray): Data of shape (N, D)
-
-    Returns:
-        (mean, cov): mean is of shape (D,), cov is of shape (D, D)
-    """
     mean = np.mean(data, axis=0)
     cov = np.cov(data, rowvar=False)
     return mean, cov
 
 
 def load_mnist_data() -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Load the MNIST dataset from openml and split into train/test sets.
-
-    Returns:
-        X_train, y_train, X_test, y_test: MNIST images and labels.
-        X shapes: (N, 784), y shapes: (N,)
-    """
-    mnist = fetch_openml('mnist_784', version=1)
-    X = mnist.data.astype(np.float32)
-    y = mnist.target.astype(np.int64)
+    mnist = fetch_openml('mnist_784', version=1, as_frame=True)
+    X = mnist.data.to_numpy(dtype=np.float32)
+    y = mnist.target.to_numpy(dtype=np.int64)
 
     # Normalize data to [0,1]
     X /= 255.0
 
-    # Simple train/test split:
-    # We'll take the first 60,000 as train and last 10,000 as test
+    # Simple train/test split
     X_train, X_test = X[:60000], X[60000:]
     y_train, y_test = y[:60000], y[60000:]
     return X_train, y_train, X_test, y_test
 
 
 def build_class_gaussians(X_train: np.ndarray, y_train: np.ndarray) -> List[Tuple[np.ndarray, np.ndarray]]:
-    """
-    For each digit class (0-9), estimate a Gaussian distribution in pixel space.
-
-    Parameters:
-        X_train (np.ndarray): Training images, shape (N, 784)
-        y_train (np.ndarray): Training labels, shape (N,)
-
-    Returns:
-        List of (mean, cov) for each class digit from 0 to 9.
-    """
     class_gaussians = []
     for digit in range(10):
         digit_data = X_train[y_train == digit]
         mean, cov = estimate_gaussian_parameters(digit_data)
-        # Add small regularization to covariance to avoid singularity
+        # Regularize covariance
         cov += 1e-5 * np.eye(cov.shape[0])
         class_gaussians.append((mean, cov))
     return class_gaussians
 
 
 def classify_image_with_gaussians(image: np.ndarray, class_gaussians: List[Tuple[np.ndarray, np.ndarray]]) -> int:
-    """
-    Classify a single image by choosing the Gaussian class that gives the highest likelihood.
-
-    Parameters:
-        image (np.ndarray): Single image of shape (784,)
-        class_gaussians (List): List of (mean, cov) tuples for each class.
-
-    Returns:
-        int: Predicted digit class.
-    """
-    # Evaluate the probability density for each class and pick the argmax
     scores = []
     for mean, cov in class_gaussians:
         rv = multivariate_normal(mean=mean, cov=cov, allow_singular=True)
@@ -147,52 +108,15 @@ def classify_image_with_gaussians(image: np.ndarray, class_gaussians: List[Tuple
 
 
 if __name__ == "__main__":
-    # --------------------------------------------
-    # Part 1: Illustrate Gaussian Data Simulation
-    # --------------------------------------------
-    # Let's create a random 3D Gaussian distribution and visualize it.
-    mean_3d = np.array([1.0, 2.0, 3.0], dtype=np.float64)
-    cov_3d = np.array([[1.0, 0.8, 0.3],
-                       [0.8, 1.5, 0.4],
-                       [0.3, 0.4, 1.0]], dtype=np.float64)
-    data_3d = generate_gaussian_data(mean_3d, cov_3d, 2000)
-
-    # Visualize using a 2D PCA projection
-    visualize_2d_projection(data_3d, title="2D PCA Projection of 3D Gaussian Data")
-
-    # Visualize pairwise projections (0-1), (0-2), (1-2)
-    pairwise_projections(data_3d, dims=[0, 1, 2])
-
-    # --------------------------------------------
-    # Part 2: Representing MNIST Images as Gaussians
-    # --------------------------------------------
-    # Load MNIST
+    # Load and prepare MNIST data
     X_train, y_train, X_test, y_test = load_mnist_data()
 
-    # Each image is 784-dimensional. Let's pick a single class (e.g., digit '0') and estimate its Gaussian parameters.
-    zero_data = X_train[y_train == 0]
-    zero_mean, zero_cov = estimate_gaussian_parameters(zero_data)
-
-    # Visualize the zero_data distribution (784D) via PCA projection to 2D
-    # We'll take a subset for speed in plotting
-    subset = zero_data[:2000]
-    visualize_2d_projection(subset, title="2D PCA of MNIST Zeros")
-
-    # --------------------------------------------
-    # Part 3: Gaussian Classification on MNIST
-    # --------------------------------------------
-    # Estimate Gaussian parameters for all digit classes
+    # Build Gaussian models for each digit class
     class_gaussians = build_class_gaussians(X_train, y_train)
 
-    # Let's pick a test image and predict its class:
-    test_image = X_test[0]
+    # Test on a single test image
+    test_image = X_test[0]  # This will now work as expected
     test_label = y_test[0]
 
     pred_class = classify_image_with_gaussians(test_image, class_gaussians)
     print(f"True label: {test_label}, Predicted label by Gaussian model: {pred_class}")
-
-
-    # Notes:
-    # In a real scenario, these Gaussian models are very simplistic and ignore correlations if the covariance is not well-structured.
-    # PCA and pairwise plots help build intuition about the shape and distribution of the data.
-    # For MNIST, the distribution of pixel intensities per class is complex, and these simple Gaussian approximations are quite rough.
