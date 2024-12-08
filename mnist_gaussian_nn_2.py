@@ -120,3 +120,19 @@ if __name__ == "__main__":
 
     pred_class = classify_image_with_gaussians(test_image, class_gaussians)
     print(f"True label: {test_label}, Predicted label by Gaussian model: {pred_class}")
+
+    # Evaluate the accuracy on a subset of the test set
+    subset_size = 1000
+    test_subset = X_test[:subset_size]
+    labels_subset = y_test[:subset_size]
+
+    correct = 0
+    for i in range(subset_size):
+        if i % 10 == 0:
+            print(f"Evaluating image {i} of {subset_size}")
+        pred = classify_image_with_gaussians(test_subset[i], class_gaussians)
+        if pred == labels_subset[i]:
+            correct += 1
+
+    accuracy = correct / subset_size
+    print(f"Accuracy on a subset of size {subset_size}: {accuracy * 100:.2f}%")
