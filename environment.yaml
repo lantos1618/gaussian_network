@@ -1,0 +1,21 @@
+name: gaussian_network
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - numpy
+  - matplotlib
+  - pytorch
+  - torchvision
+  - torchaudio
+  - psutil
+pip:
+  - tinygrad
+  - scikit-learn
+  
+  # If you want to ensure a CPU-only PyTorch, you can specify:
+  # - pytorch=1.13.1=py3.9_cpu_0
+  # Adjust as needed depending on the PyTorch version you want.

@@ -1,0 +1,5 @@
+CONVERSATION_LOG.md
+
+.DS_Store
+/data
+/.mypy_cache
